@@ -121,6 +121,10 @@ def run(test, params, env):
                 'XDG_CACHE_HOME',
                 'XDG_CONFIG_HOME',
             ]
+        if re.search('LD_PRELOAD.[^\s]+\s', conv_arg):
+            expected_env_vars += [
+                'LD_PRELOAD',
+             ]
 
         valmatcher = '.[^\\s]+\\s'
 
