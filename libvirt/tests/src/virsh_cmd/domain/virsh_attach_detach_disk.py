@@ -378,7 +378,7 @@ def run(test, params, env):
                       % test_cmd.split("-")[0])
         cmd = (grep_audit + ' | ' + 'grep "%s" | tail -n1 | grep "res=success"'
                % device_source)
-        if process.run(cmd, shell=True).exit_status:
+        if process.run(cmd, ignore_status=True, shell=True).exit_status:
             logging.error("Audit check failed")
             check_audit_after_cmd = False
 
