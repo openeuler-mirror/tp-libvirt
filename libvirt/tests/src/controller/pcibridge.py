@@ -126,7 +126,7 @@ def run(test, params, env):
         if need_pci_br and pci_br_has_device:
             sound_dev = Sound()
             sound_dev.model_type = sound_dev_model_type
-            sound_dev.address = eval(sound_dev_address % pci_br_index)
+            sound_dev.address = eval(sound_dev_address % hex(int(pci_br_index)))
             logging.debug('sound_dev.address: %s', sound_dev.address)
             vmxml.add_device(sound_dev)
             if case != 'vm_with_pcie_br_1_br':
