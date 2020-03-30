@@ -831,6 +831,8 @@ def run(test, params, env):
                 numa_dict_list = create_numa(vcpu, max_mem, max_mem_unit)
             vmxml_cpu = vm_xml.VMCPUXML()
             vmxml_cpu.xml = "<cpu><numa/></cpu>"
+            if 'aarch' in platform.machine():
+                vmxml_cpu.xml = "<cpu mode='host-passthrough' check='none'><numa/></cpu>"
             logging.debug(vmxml_cpu.numa_cell)
             vmxml_cpu.numa_cell = numa_dict_list
             logging.debug(vmxml_cpu.numa_cell)
