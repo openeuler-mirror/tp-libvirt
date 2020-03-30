@@ -99,6 +99,7 @@ def run(test, params, env):
 
     is_arm = "aarch" in platform.machine()
     if is_arm:
+        gic_version = None
         for gic_enum in domcap.DomCapabilityXML()['features']['gic_enums']:
             if gic_enum['name'] == "version":
                 gic_version = gic_enum['values'][0].get_value()
