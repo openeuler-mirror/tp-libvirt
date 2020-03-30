@@ -270,6 +270,8 @@ def run(test, params, env):
         # guest numa cpu setting
         vmcpuxml = libvirt_xml.vm_xml.VMCPUXML()
         vmcpuxml.xml = "<cpu><numa/></cpu>"
+        if 'aarch64' in arch:
+            vmcpuxml.xml = "<cpu mode='host-passthrough' check='none'><numa/></cpu>"
         if topology:
             vmcpuxml.topology = topology
         logging.debug(vmcpuxml.numa_cell)
