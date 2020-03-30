@@ -3,6 +3,7 @@ import os
 import re
 import time
 import platform
+import traceback
 
 from six import itervalues, string_types
 from avocado.utils import process
@@ -399,6 +400,7 @@ def run(test, params, env):
 
             logging.debug("CPU %s successful !!!", operation)
         except Exception as info:
+            logging.error(str(traceback.format_exc()))
             test.fail("CPU %s failed - %s" % (operation, info))
         finally:
             # recover the connect uri
@@ -1091,6 +1093,7 @@ def run(test, params, env):
                                            func_params=cmd,
                                            shell=True)
             except Exception as info:
+                logging.error(str(traceback.format_exc()))
                 test.fail(info)
             if obj_migration.RET_MIGRATION:
                 utils_test.check_dest_vm_network(vm, vm.get_address(),
@@ -1149,6 +1152,7 @@ def run(test, params, env):
                                                     func=func,
                                                     func_params=params)
                     except Exception as info:
+                        logging.error(str(traceback.format_exc()))
                         test.fail(info)
                     ret_migrate = migration_test.RET_MIGRATION
                 elif postcopy_cmd != "":
@@ -1161,6 +1165,7 @@ def run(test, params, env):
                                                    func_params=cmd,
                                                    shell=True)
                     except Exception as info:
+                        logging.error(str(traceback.format_exc()))
                         test.fail(info)
                     ret_migrate = obj_migration.RET_MIGRATION
 
