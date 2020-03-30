@@ -53,7 +53,7 @@ def run(test, params, env):
 
         # The xml should contain the match_string
         xml = cmd_result.stdout.strip()
-        match_string = "<boot dev='cdrom'/>"
+        match_string = "<on_crash>destroy</on_crash>"
         if not re.search(match_string, xml):
             raise exceptions.TestFail("After domain restore, "
                                       "the xml is not expected")
@@ -82,8 +82,8 @@ def run(test, params, env):
 
         xml = get_image_xml()
 
-        # Replace <boot dev='hd'/> to <boot dev='cdrom'/>
-        newxml = xml.replace("<boot dev='hd'/>", "<boot dev='cdrom'/>")
+        # Replace <on_crash>restart</on_crash> to <on_crash>destroy</on_crash>
+        newxml = xml.replace("<on_crash>restart</on_crash>", "<on_crash>destroy</on_crash>")
         logging.debug("After string replacement, the new xml is %s", newxml)
 
         # Write new xml into a tempfile

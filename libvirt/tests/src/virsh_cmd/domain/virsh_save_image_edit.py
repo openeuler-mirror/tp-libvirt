@@ -21,7 +21,7 @@ def run(test, params, env):
     """
 
     def edit_image_xml():
-        edit_cmd = r":%s /<boot dev='hd'\/>/<boot dev='cdrom'\/>"
+        edit_cmd = r":%s /<on_crash>restart/<on_crash>destroy"
 
         if restore_state == "running":
             option = "--running"
@@ -39,7 +39,7 @@ def run(test, params, env):
             session.sendline("virsh save-image-edit %s %s " %
                              (vm_save, option))
 
-            logging.info("Replace '<boot dev='hd'/>' to '<boot dev='cdrom'/>'")
+            logging.info("Replace '<on_crash>restart' to '<on_crash>destroy'")
             session.sendline(edit_cmd)
             session.send('\x1b')
             session.send('ZZ')
@@ -59,7 +59,7 @@ def run(test, params, env):
 
         # The xml should contain the match_string
         xml = cmd_result.stdout.strip()
-        match_string = "<boot dev='cdrom'/>"
+        match_string = "<on_crash>destroy</on_crash>"
         if not re.search(match_string, xml):
             test.fail("After domain restore the xml is not expected")
 
