@@ -1,6 +1,7 @@
 import time
 import logging
 import aexpect
+import platform
 from avocado.utils import process
 
 from virttest import virsh
@@ -116,21 +117,25 @@ def run(test, params, env):
         net_device_address = nodedev_xml.NodedevXML.new_from_dumpxml(net_device_name).parent
         return net_device_address
 
-    def check_kernel_option():
+    def check_device_mmu_option():
         """
-        Check the kernel option if the kernel cmdline include  "iommu=on" option
+        For x86, check the kernel option if the kernel cmdline include  "iommu=on" option.
+        For arm, check the devices if smmu is enable or not.
         """
         check_cmd = "egrep '(intel|amd)_iommu=on' /proc/cmdline"
+        if 'aarch' in platform.machine():
+            check_cmd = "ls /sys/devices/ | grep smmu"
+
         try:
             check_result = process.run(check_cmd, shell=True)
         except Exception:
             test.cancel("Operation not supported: neither VFIO nor KVM device assignment"
                         "is currently supported on this system")
         else:
-            logging.debug('IOMMU is enabled')
+            logging.debug('IOMMU/SMMU is enabled')
 
-    # Check kernel iommu option
-    check_kernel_option()
+    # Check iommu/smmu option
+    check_device_mmu_option()
 
     # Init variables
     nodedev_event_list = params.get("nodedev_event_list")
