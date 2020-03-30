@@ -104,7 +104,7 @@ def run(test, params, env):
                 if result.exit_status:
                     raise process.CmdError(result.command, result)
             else:
-                attributes = {'type_name': "usb", 'bus': "1", 'port': "0"}
+                attributes = {'type': "usb", 'bus': "1", 'port': "1"}
                 if usb_type == "storage":
                     dev_xml = Disk(type_name="file")
                     dev_xml.device = "disk"
