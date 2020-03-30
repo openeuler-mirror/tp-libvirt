@@ -40,7 +40,8 @@ def run(test, params, env):
 
     # Set selinux of host.
     backup_sestatus = utils_selinux.get_status()
-    utils_selinux.set_status("permissive")
+    if 'disable' not in backup_sestatus:
+        utils_selinux.set_status("permissive")
 
     if usb_type == "storage":
         controllers = vm_xml.get_devices(device_type="controller")
@@ -165,5 +166,6 @@ def run(test, params, env):
         session.close()
         if os.path.isdir(tmp_dir):
             shutil.rmtree(tmp_dir)
-        utils_selinux.set_status(backup_sestatus)
+        if 'disable' not in backup_sestatus:
+            utils_selinux.set_status(backup_sestatus)
         vm_xml_backup.sync()
