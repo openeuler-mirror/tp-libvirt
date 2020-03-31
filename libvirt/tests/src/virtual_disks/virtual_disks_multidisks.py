@@ -1811,6 +1811,7 @@ def run(test, params, env):
                     libvirt.check_exit_status(ret)
                 if virtio_disk_hot_unplug_event_watch:
                     check_info_in_libvird_log_file('"event": "DEVICE_DELETED"')
+                time.sleep(1)
             # Check disks in VM after hotunplug.
             if check_partitions_hotunplug:
                 if not check_vm_partitions(devices,
