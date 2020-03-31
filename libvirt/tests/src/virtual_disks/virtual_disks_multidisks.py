@@ -1896,6 +1896,8 @@ def run(test, params, env):
                 del img["disk_dev"]
             else:
                 if img["format"] == "scsi":
+                    cmd = "/bin/systemctl stop multipathd.service"
+                    process.system(cmd, ignore_status=True, shell=True)
                     libvirt.delete_scsi_disk()
                 elif img["format"] == "iscsi":
                     libvirt.setup_or_cleanup_iscsi(is_setup=False)
