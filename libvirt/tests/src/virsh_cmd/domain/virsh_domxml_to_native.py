@@ -152,6 +152,7 @@ def run(test, params, env):
         qemu_bin = ["/usr/bin/qemu-kvm", "/usr/bin/kvm"]
         arch_bin = ["/usr/bin/qemu-system-x86_64 -machine accel=kvm",
                     "/usr/bin/qemu-system-ppc64 -machine accel=kvm",
+                    "/usr/libexec/qemu-kvm -machine accel=kvm",
                     "qemu-system-ppc64 -enable-kvm"]
         qemu_kvm_bin = ""
         for each_bin in qemu_bin:
