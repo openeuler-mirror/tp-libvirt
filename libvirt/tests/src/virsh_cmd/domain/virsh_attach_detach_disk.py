@@ -200,6 +200,9 @@ def run(test, params, env):
     # Create virtual device file.
     device_source_path = os.path.join(data_dir.get_tmp_dir(), device_source_name)
     if test_block_dev:
+        # Make sure the multipathd.service is stoped when create VG with a block devices.
+        cmd = "/bin/systemctl stop multipathd.service"
+        process.system(cmd, ignore_status=True, shell=True)
         device_source = libvirt.setup_or_cleanup_iscsi(True)
         if not device_source:
             # We should skip this case
