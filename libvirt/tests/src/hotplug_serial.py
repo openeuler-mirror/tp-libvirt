@@ -223,7 +223,8 @@ def run(test, params, env):
                 err_o1 = "Duplicate ID"
                 err_o2 = "Parsing chardev args failed"
                 err_o3 = "Property 'virtserialport.chardev' can't"
-                if (err_o1 not in dup_o) and (err_o2 not in dup_o) and (err_o3 not in dup_o):
+                err_o4 = "duplicate property"
+                if (err_o1 not in dup_o) and (err_o2 not in dup_o) and (err_o3 not in dup_o) and (err_o4 not in dup_o):
                     test.fail("Expect fail, but run successfully:\n%s" % ret)
             else:
                 if "chardev already exists" not in dup_o:
