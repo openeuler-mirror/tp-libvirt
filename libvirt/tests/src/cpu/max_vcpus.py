@@ -90,6 +90,9 @@ def run(test, params, env):
                     if key == "pc-q35-rhel7.3.0":
                         if machtype_vcpunum_dict[key] != report_num_q35_73:
                             test.fail('Test failed as q35_rhel73_max_vcpus_num in virsh_capa is wrong.')
+                    elif len(key) == len("pc-q35-2.8") and key < "pc-q35-2.8":
+                        if machtype_vcpunum_dict[key] != report_num_q35_73:
+                            test.fail('Test failed as the q35_max_vcpus_num in virsh_capa is wrong.')
                     else:
                         if machtype_vcpunum_dict[key] != report_num_q35_7_8:
                             test.fail('Test failed as the q35_max_vcpus_num in virsh_capa is wrong.')
