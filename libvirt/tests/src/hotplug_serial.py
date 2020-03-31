@@ -162,7 +162,7 @@ def run(test, params, env):
             sock = socket.socket(socket.AF_UNIX)
             sock.connect(tmp_file)
             session.cmd("dd if=/tmp/file of=%s" % serial_file)
-            r_o = sock.recv(1024)
+            r_o = str(sock.recv(1024))
         elif char_dev == "pty":
             session.cmd("echo test > /tmp/file")
             session.cmd("dd if=/tmp/file of=%s &" % serial_file)
