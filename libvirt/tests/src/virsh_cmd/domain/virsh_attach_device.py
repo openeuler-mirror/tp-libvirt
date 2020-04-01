@@ -2,6 +2,7 @@
 Module to exercize virsh attach-device command with various devices/options
 """
 
+import re
 import os
 import os.path
 import logging
@@ -697,7 +698,7 @@ class VirtualDiskBasic(AttachDeviceBase):
             logging.debug("VirtualDiskBasic functional test raised an exception")
             return False
         else:
-            gotit = [data for data in self.test_data_list if output.strip('\n') in data]
+            gotit = [data for data in self.test_data_list if re.sub(r'[\x00-\x1f]', '', output) in data]
             logging.info("Test data detected in device: %s",
                          gotit)
             if not gotit:
