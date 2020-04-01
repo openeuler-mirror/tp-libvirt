@@ -159,7 +159,7 @@ def run(test, params, env):
             iface_list = [
                 iface for iface in xml_after_attach.get_devices('interface')
                 if iface.mac_address == mac and
-                int(iface.address['attrs']['bus'], 16) == int(pci_br_index, 16)
+                int(iface.address['attrs']['bus'], 16) == int(pci_br_index)
             ]
 
             logging.debug('iface list after attach: %s', iface_list)
