@@ -1415,7 +1415,7 @@ def run(test, params, env):
         if status_error:
             test.fail("VM started unexpectedly")
 
-        def add_sleep(sleep_seconds=10):
+        def add_sleep(sleep_seconds=1):
             """
             Check specific arch and do sleep for specified seconds.
             This is to workaround for some failures due to different
@@ -1424,7 +1424,8 @@ def run(test, params, env):
             :param sleep_seconds: seconds for sleeping
             """
             if on_ppc:
-                time.sleep(sleep_seconds)
+                sleep_seconds = 10
+            time.sleep(sleep_seconds)
 
         def test_device_update_boot_order(disk_type, disk_path, error_msg):
             """
