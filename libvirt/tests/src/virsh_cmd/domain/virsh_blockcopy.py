@@ -235,6 +235,7 @@ def run(test, params, env):
 
     vm_name = params.get("main_vm")
     vm = env.get_vm(vm_name)
+    disk_target = params.get("disk_target", "")
     target = params.get("target_disk", "")
     replace_vm_disk = "yes" == params.get("replace_vm_disk", "no")
     disk_source_protocol = params.get("disk_source_protocol")
@@ -502,6 +503,8 @@ def run(test, params, env):
                 nfs_cleanup = True
             utl.set_vm_disk(vm, params, tmp_dir, test)
             new_xml = vm_xml.VMXML.new_from_inactive_dumpxml(vm_name)
+            if disk_target != "":
+                target = disk_target
 
         if with_shallow:
             _make_snapshot()
