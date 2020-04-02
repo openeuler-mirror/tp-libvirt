@@ -42,7 +42,6 @@ def prepare_c_file():
         output.writelines(outputlines)
     return "/tmp/test.c"
 
-
 def run(test, params, env):
     """
     Test steps:
@@ -54,9 +53,18 @@ def run(test, params, env):
     5) Check the hugepage memory usage.
     6) Clean up
     """
+
+    hugepage_size = utils_memory.get_huge_page_size()
+    logging.debug("System setting for large memory page size: %s",
+                      hugepage_size)
+    if hugepage_size > 2048:
+        shp_num_tmp = int(params.get("static_hugepage_num", 1024))
+        shp_num = int(shp_num_tmp / (hugepage_size / 2048))
+    else:
+        shp_num = int(params.get("static_hugepage_num", 1024))
+
     test_type = params.get("test_type", 'normal')
     tlbfs_enable = 'yes' == params.get("hugetlbfs_enable", 'no')
-    shp_num = int(params.get("static_hugepage_num", 1024))
     thp_enable = 'yes' == params.get("trans_hugepage_enable", 'no')
     mb_enable = 'yes' == params.get("mb_enable", 'yes')
     delay = int(params.get("delay_time", 10))
