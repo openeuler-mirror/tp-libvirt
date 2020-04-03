@@ -51,6 +51,9 @@ def run(test, params, env):
         if not os.path.exists('/sys/devices/system/cpu/cpu0/online'):
             cpus_online = str(int(cpus_online) + 1)
             cpus_total = str(int(cpus_total) + 1)
+        else:
+            cpus_online = cpus_online.decode()
+            cpus_total = cpus_total.decode()
 
         logging.debug("host online cpus are %s", cpus_online)
         logging.debug("host total cpus are %s", cpus_total)
@@ -84,11 +87,14 @@ def run(test, params, env):
         # that it's within 20 percent of each value to give us enough of
         # a "fudge" factor to declare "close enough". Don't return a failure
         # just print a debug message and move on.
-        diffval = abs(int(cpu_frequency_nodeinfo) - int(cpu_frequency_os))
-        if (float(diffval) / float(cpu_frequency_nodeinfo) > 0.20 or
+
+        #aarch64 no support cpu_frequency_nodeinfo
+        if "aarch64" not in platform.machine():
+            diffval = abs(int(cpu_frequency_nodeinfo) - int(cpu_frequency_os))
+            if (float(diffval) / float(cpu_frequency_nodeinfo) > 0.20 or
                 float(diffval) / float(cpu_frequency_os) > 0.20):
-            logging.debug("Virsh nodeinfo output didn't match CPU "
-                          "frequency within 20 percent")
+                logging.debug("Virsh nodeinfo output didn't match CPU "
+                              "frequency within 20 percent")
 
         # Get CPU topology from virsh capabilities xml
         cpu_topology = capability_xml.CapabilityXML()['cpu_topology']
@@ -120,8 +126,20 @@ def run(test, params, env):
         cmd = "lscpu | grep 'Core(s) per socket' | head -n1 | awk '{print $4}'"
         cmd_result = process.run(cmd, ignore_status=True, shell=True)
         cores_per_socket_os = cmd_result.stdout_text.strip()
+
+        cmd = "lscpu | grep 'NUMA node(s)' | head -n1 | awk '{print $3}'"
+        cmd_result = process.run(cmd, ignore_status=True, shell=True)
+        nodes_os = cmd_result.stdout_text.strip()
+
+        cmd = "lscpu | grep 'Socket(s)' | head -n1 | awk '{print $2}'"
+        cmd_result = process.run(cmd, ignore_status=True, shell=True)
+        sockets_os = cmd_result.stdout_text.strip()
+
+        cores_per_node_os = str(int(cores_per_socket_os) * (int(sockets_os) /
+                                  int(nodes_os)))
+
         spec_numa = False
-        if not re.match(cores_per_socket_nodeinfo, cores_per_socket_os):
+        if not re.match(cores_per_socket_nodeinfo, cores_per_node_os):
             # for spec NUMA arch, the output of nodeinfo is in a spec format
             cpus_os = cpu.get_cpu_info().get("CPU(s)")
             numa_cells_nodeinfo = _check_nodeinfo(
