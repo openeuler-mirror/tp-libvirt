@@ -1724,7 +1724,10 @@ def run(test, params, env):
                     cmd += (" | grep %s,bus=ide.%d,unit=%d,drive=drive-%s,id=%s"
                             % (device_option, dev_bus, dev_unit, dev_id, dev_id))
                 if device_bus[0] == "sata":
-                    cmd += (" | grep 'device ahci,.*,bus=pci.%s'" % dev_bus)
+                    if platform.platform().count('x86_64'):
+                        cmd += (" | grep 'device ide-hd,.*bus=ide.'")
+                    else:
+                        cmd += (" | grep 'device ahci,.*,bus=pci.'")
                 if device_bus[0] == "scsi":
                     if devices[0] == "lun":
                         device_option = "scsi-block"
