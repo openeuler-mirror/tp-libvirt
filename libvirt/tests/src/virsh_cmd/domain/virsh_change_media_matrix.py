@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import platform
 from virttest import virsh
 from virttest import data_dir
 from virttest.libvirt_xml import vm_xml
@@ -169,6 +170,8 @@ def run(test, params, env):
     options = params.get("change_media_options")
     options_twice = params.get("change_media_options_twice", "")
     device_type = params.get("change_media_device_type", "cdrom")
+    if "aarch" in platform.machine():
+        params["change_media_target_bus"] = "sata"
     target_bus = params.get("change_media_target_bus", "ide")
     target_device = params.get("change_media_target_device", "hdc")
     init_iso_name = params.get("change_media_init_iso")
