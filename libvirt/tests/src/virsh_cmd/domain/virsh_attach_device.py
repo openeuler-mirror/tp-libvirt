@@ -3,6 +3,7 @@ Module to exercize virsh attach-device command with various devices/options
 """
 
 import re
+import time
 import os
 import os.path
 import logging
@@ -905,6 +906,7 @@ def run(test, params, env):
     pstboot_results = []
     try:
         operational_action(test_params, test_devices, operational_results)
+        time.sleep(10)
         # Fail early if attach-device return value is not expected
         analyze_results(test_params, test,
                         operational_results=operational_results)
