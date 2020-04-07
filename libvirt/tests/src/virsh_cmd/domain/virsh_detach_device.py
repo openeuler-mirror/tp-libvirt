@@ -255,7 +255,7 @@ def run(test, params, env):
             status = virsh.detach_device(vm_ref, device_xml, readonly=readonly, flagstr=dt_options,
                                          debug=True).exit_status
 
-        time.sleep(2)
+        time.sleep(10)
         # Resume guest after command. On newer libvirt this is fixed as it has
         # been a bug. The change in xml file is done after the guest is
         # resumed.
