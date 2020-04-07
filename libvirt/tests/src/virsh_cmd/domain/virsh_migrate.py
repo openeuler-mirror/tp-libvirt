@@ -985,6 +985,12 @@ def run(test, params, env):
                 ret_attach = vm.attach_interface("--type bridge --source "
                                                  "virbr0 --target tmp-vnet",
                                                  True, True)
+                if ret_attach.stderr.strip().find("No more available PCI slots") != -1:
+                    logging.debug("No more available PCI slots to attach, "
+                                  "try attach interface with model=virtio again")
+                    ret_attach = vm.attach_interface("--type bridge --model virtio --source "
+                                                     "virbr0 --target tmp-vnet",
+                                                     True, True)
                 if not ret_attach:
                     exception = True
                     test.error("Attaching nic to %s failed." % vm.name)
