@@ -136,8 +136,12 @@ def run(test, params, env):
         elif mode == "delete":
             if cpu_match == "strict":
                 msg_patterns = ["incompatible"]
+                if "aarch" in platform.machine():
+                    msg_patterns = ["identical"]
             else:
                 msg_patterns = ["superset"]
+                if "aarch" in platform.machine():
+                    msg_patterns = ["identical"]
         elif mode == "modify":
             if modify_target == "mode":
                 if modify_invalid:
@@ -155,9 +159,13 @@ def run(test, params, env):
                     msg_patterns = ["incompatible"]
                 elif modify_invalid:
                     msg_patterns = ["Unknown"]
+                    if "aarch" in platform.machine():
+                        msg_patterns = ["incompatible"]
             elif modify_target == "feature_policy":
                 if modify_value == "forbid":
                     msg_patterns = ["incompatible"]
+                    if "aarch" in platform.machine():
+                        msg_patterns = ["identical"]
                 else:
                     msg_patterns = ["identical"]
             else:
