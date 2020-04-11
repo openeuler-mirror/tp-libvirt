@@ -27,6 +27,16 @@ def run(test, params, env):
     vmxml = libvirt_xml.VMXML.new_from_inactive_dumpxml(vm_name)
     bkxml = vmxml.copy()
 
+    def update_vcpu_topology(vmxml):
+        vm_cores = int(params.get("vcpu_cores", 25))
+        vm_threads = int(params.get("vcpu_threads", 1))
+        vm_sockets = int(params.get("vcpu_sockets", 2))
+        vmcpu_xml = vmxml['cpu']
+        vmcpu_xml['topology'] = {'sockets': vm_sockets,
+                                 'cores': vm_cores,
+                                 'threads': vm_threads}
+        vmxml['cpu'] = vmcpu_xml
+
     def check_onlinevcpus(vm, cpu_num):
         """
 
@@ -103,6 +113,7 @@ def run(test, params, env):
             target_vcpu = params.get('target_vcpu')
             if 'hotplug' not in check:
                 vmxml.vcpu = int(guest_vcpu)
+                update_vcpu_topology(vmxml)
                 vmxml.sync()
                 if status_error:
                     if start_fail:
@@ -116,6 +127,7 @@ def run(test, params, env):
                 vmxml.vcpu = int(guest_vcpu)
                 vmxml.current_vcpu = int(current_vcpu)
                 target_vcpu = int(target_vcpu)
+                update_vcpu_topology(vmxml)
                 vmxml.sync()
                 vm.start()
                 logging.info(libvirt_xml.VMXML.new_from_dumpxml(vm_name))
@@ -129,12 +141,14 @@ def run(test, params, env):
         if check == 'no_iommu':
             logging.info('Set vcpu to %s', guest_vcpu)
             vmxml.vcpu = int(guest_vcpu)
+            update_vcpu_topology(vmxml)
             result_need_check = virsh.define(vmxml.xml, debug=True)
 
         # Set iommu device but not set ioapci in features for q35 VM
         if check == 'with_iommu':
             logging.info('Set vcpu to %s', guest_vcpu)
             vmxml.vcpu = int(guest_vcpu)
+            update_vcpu_topology(vmxml)
             set_iommu(vmxml)
             result_need_check = virsh.define(vmxml.xml, debug=True)
 
@@ -153,13 +167,14 @@ def run(test, params, env):
             ori_vcpu = vmxml.vcpu
             vmxml.vcpu = int(guest_vcpu)
             vmxml.current_vcpu = ori_vcpu
+            update_vcpu_topology(vmxml)
 
             if 'hotplug' not in check:
                 vmxml.current_vcpu = int(guest_vcpu)
 
             if status_error:
                 if start_fail:
-                    if libvirt_version.version_compare(5, 6, 0):
+                    if libvirt_version.version_compare(5, 5, 0):
                         result_need_check = virsh.define(vmxml.xml, debug=True)
                     else:
                         vmxml.sync()
