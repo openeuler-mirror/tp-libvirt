@@ -1333,7 +1333,7 @@ def run(test, params, env):
                 attach_option = '--config'
                 ret = virsh.attach_device(vm_name, custom_disk_xml.xml,
                                           flagstr=attach_option, debug=True)
-                libvirt.check_exit_status(ret)
+                libvirt.check_exit_status(ret, expect_error=True)
                 vmxml = vm_xml.VMXML.new_from_dumpxml(vm_name)
 
         # Create second controller,and add it to vmxml.
