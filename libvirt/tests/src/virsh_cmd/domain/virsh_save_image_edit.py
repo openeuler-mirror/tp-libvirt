@@ -64,7 +64,7 @@ def run(test, params, env):
             test.fail("After domain restore the xml is not expected")
 
         domstate = virsh.domstate(vm_name, debug=True).stdout.strip()
-        if restore_state != domstate:
+        if restore_state != domstate and (restore_state != "" or domstate != "running"):
             test.fail("The domain state is not expected")
 
     # MAIN TEST CODE ###
