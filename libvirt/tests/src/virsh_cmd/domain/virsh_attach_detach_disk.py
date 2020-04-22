@@ -349,6 +349,7 @@ def run(test, params, env):
                                    debug=True)
         libvirt.check_exit_status(result)
         # Remove systemlink for lv01,lv02,and lv03
+        time.sleep(1)
         for lvm_item in total_lvm_names:
             remove_systemlink_cmd = ('lvchange -a n %s' % lvm_item)
             if process.run(remove_systemlink_cmd, shell=True).exit_status:
