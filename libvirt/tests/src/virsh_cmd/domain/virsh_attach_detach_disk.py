@@ -345,6 +345,7 @@ def run(test, params, env):
                                        debug=True).exit_status
     if test_systemlink_twice:
         # Detach lvm previously attached.
+        time.sleep(5)
         result = virsh.detach_disk(vm_ref, device_target, dt_options,
                                    debug=True)
         libvirt.check_exit_status(result)
