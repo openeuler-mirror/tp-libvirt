@@ -1216,6 +1216,11 @@ def run(test, params, env):
                 osxml.type = vmxml.os.type
                 osxml.arch = vmxml.os.arch
                 osxml.machine = vmxml.os.machine
+                if platform.platform().count('aarch64'):
+                    osxml.loader = vmxml.os.loader
+                    osxml.loader_readonly = vmxml.os.loader_readonly
+                    osxml.loader_type = vmxml.os.loader_type
+                    osxml.nvram = vmxml.os.nvram
                 if test_boot_console:
                     osxml.loader = "/usr/share/seabios/bios.bin"
                     osxml.bios_useserial = "yes"
