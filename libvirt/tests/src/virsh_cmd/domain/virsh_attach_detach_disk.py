@@ -1,7 +1,7 @@
 import os
 import time
 import logging
-
+import platform
 import aexpect
 
 from avocado.utils import process
@@ -182,7 +182,8 @@ def run(test, params, env):
                 test.cancel("'directsync' cache option doesn't "
                             "support in current libvirt version.")
         at_options += (" --cache %s" % cache_options)
-
+    if device_target == "hdc" and platform.platform().count('aarch64'):
+        device_target = "sdc"
     vm_name = params.get("main_vm")
     vm = env.get_vm(vm_name)
 
