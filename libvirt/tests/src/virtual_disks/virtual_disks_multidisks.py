@@ -1291,6 +1291,13 @@ def run(test, params, env):
         # Add virtio_scsi controller.
         if virtio_scsi_controller:
             scsi_controller = Controller("controller")
+            pci_bridge_controller = Controller("controller")
+            controllers = vmxml.get_devices(device_type="controller")
+            for ctrl in controllers:
+                if ctrl.type == "pci":
+                    if ctrl.model == "pcie-to-pci-bridge":
+                        pci_bridge_controller = ctrl
+                        break
             scsi_controller.type = "scsi"
             ctl_type = params.get("virtio_scsi_controller_type")
             if ctl_type:
@@ -1318,9 +1325,18 @@ def run(test, params, env):
                 scsi_controller.address = scsi_controller.new_controller_address(attrs=addr_dict)
             if ctl_type:
                 vmxml.del_controller(ctl_type)
+                pcie_root_port_count = 30
+                for i in range(1, pcie_root_port_count):
+                    if i != 3:
+                        pci_root_index = Controller("controller")
+                        pci_root_index.type = "pci"
+                        pci_root_index.index = "%s" % i
+                        pci_root_index.model = "pcie-root-port"
+                        vmxml.add_device(pci_root_index)
+                vmxml.add_device(pci_bridge_controller)
             else:
                 vmxml.del_controller("scsi")
-            vmxml.add_device(scsi_controller)
+                vmxml.add_device(scsi_controller)
 
         # Create second disk,and attach to VM with the same index controller.
         if virt_disk_with_duplicate_scsi_controller_index:
