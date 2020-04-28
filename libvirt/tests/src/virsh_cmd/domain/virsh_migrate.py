@@ -254,27 +254,26 @@ def run(test, params, env):
         logging.debug("Remote host hugepage config done")
         if numa_pin:
             for each_node in node_list:
-                if (each_node['mode'] == 'strict'):
-                    # reset source host hugepages
-                    if int(utils_memory.get_num_huge_pages() > 0):
-                        logging.debug("reset source host hugepages")
-                        hugepage_assign("0")
-                    # reset dest host hugepages
-                    if (int(dest_HP_free) > 0):
-                        logging.debug("reset dest host hugepages")
-                        hugepage_assign("0", target_ip=dest_machine,
-                                        user=server_user, password=server_pwd)
-                    # set source host hugepages for the specific node
-                    logging.debug("set src host hugepages for specific node")
-                    hugepage_assign(str(no_of_HPs), node=each_node['nodeset'],
-                                    hp_size=str(host_hp_size))
-                    # set dest host hugepages for specific node
-                    logging.debug("set dest host hugepages for specific node")
-                    hugepage_assign(str(no_of_HPs), target_ip=dest_machine,
-                                    node=each_node['nodeset'],
-                                    hp_size=str(host_hp_size),
-                                    user=server_user,
-                                    password=server_pwd)
+                # reset source host hugepages
+                if int(utils_memory.get_num_huge_pages() > 0):
+                    logging.debug("reset source host hugepages")
+                    hugepage_assign("0")
+                # reset dest host hugepages
+                if (int(dest_HP_free) > 0):
+                    logging.debug("reset dest host hugepages")
+                    hugepage_assign("0", target_ip=dest_machine,
+                                    user=server_user, password=server_pwd)
+                # set source host hugepages for the specific node
+                logging.debug("set src host hugepages for specific node")
+                hugepage_assign(str(no_of_HPs), node=each_node['nodeset'],
+                                hp_size=str(host_hp_size))
+                # set dest host hugepages for specific node
+                logging.debug("set dest host hugepages for specific node")
+                hugepage_assign(str(no_of_HPs), target_ip=dest_machine,
+                                node=each_node['nodeset'],
+                                hp_size=str(host_hp_size),
+                                user=server_user,
+                                password=server_pwd)
         if not pin:
             vm_xml.VMXML.set_memoryBacking_tag(vmname)
             logging.debug("Hugepage without pin")
