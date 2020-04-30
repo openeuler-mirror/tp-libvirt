@@ -43,6 +43,7 @@ def run(test, params, env):
     if libvirtd == "off":
         utils_libvirtd.libvirtd_stop()
 
+    remote_uri = None
     try:
         if vm_ref != "remote":
             status = virsh.dommemstat(vm_ref, extra, ignore_status=True,
