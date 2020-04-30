@@ -63,7 +63,7 @@ def run(test, params, env):
 
     def is_hotplug_ok():
         try:
-            output = session.cmd_output("fdisk -l | grep -c '^Disk /dev/.* 1 M'")
+            output = session.cmd_output("fdisk -l 2>/dev/null | grep -c '^Disk /dev/.* 1 M'")
             if int(output.strip()) != attach_count:
                 return False
             else:
