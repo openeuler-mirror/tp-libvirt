@@ -266,6 +266,7 @@ def run(test, params, env):
                     add_disk(dom.name, new_disk, 'vdb', '')
                     expected_events_list.append("'device-added' for %s:"
                                                 " virtio-disk1")
+                    time.sleep(2)
                     virsh.detach_disk(dom.name, 'vdb', **virsh_dargs)
                     expected_events_list.append("'device-removed' for %s:"
                                                 " virtio-disk1")
