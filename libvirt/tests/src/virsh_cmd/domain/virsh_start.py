@@ -33,6 +33,8 @@ def run(test, params, env):
     pre_operation = params.get("vs_pre_operation", "")
     status_error = params.get("status_error", "no")
 
+    remote_uri = None
+
     try:
         # prepare before start vm
         if libvirtd_state == "on":
