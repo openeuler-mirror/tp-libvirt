@@ -1730,8 +1730,12 @@ def run(test, params, env):
                         device_option = "scsi=on"
                     else:
                         device_option = "scsi=off"
-                    cmd += (" | grep virtio-blk-pci,%s,bus=pci.%x,addr=0x%x"
-                            % (device_option, dev_bus, pci_slot))
+                    if platform.platform().count('aarch64'):
+                        cmd += (" | grep virtio-blk-pci,%s,bus=pci.%d,addr=0x%x"
+                                % (device_option, dev_bus, pci_slot))
+                    else:
+                        cmd += (" | grep virtio-blk-pci,%s,bus=pci.%x,addr=0x%x"
+                                % (device_option, dev_bus, pci_slot))
                 if device_bus[0] in ["ide", "sata", "scsi"]:
                     dev_unit = int(vm_xml.VMXML.get_disk_attr(vm_name, device_targets[0],
                                                               "address", "unit"), 16)
