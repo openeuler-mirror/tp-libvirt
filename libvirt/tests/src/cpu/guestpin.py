@@ -2,6 +2,7 @@ import logging
 import os
 import random
 import time
+import platform
 
 from avocado.utils import process
 from avocado.utils import cpu as cpuutil
@@ -98,14 +99,18 @@ def run(test, params, env):
             elif condn == "stress":
                 utils_test.unload_stress("stress_in_vms", params=params, vms=[vm])
             elif condn == "hotplug":
-                result = virsh.setvcpus(vm_name, current_vcpu, "--live",
-                                        ignore_status=True, debug=True)
-                libvirt.check_exit_status(result)
-                exp_vcpu = {'max_config': max_vcpu, 'max_live': current_vcpu,
-                            'cur_config': current_vcpu, 'cur_live': current_vcpu,
-                            'guest_live': current_vcpu}
-                result = cpu.check_vcpu_value(vm, exp_vcpu,
-                                              option="--live")
+                # aarch64 platform do not support vcpu hot-unplug.
+                if platform.machine() != 'aarch64':
+                    result = virsh.setvcpus(vm_name, current_vcpu, "--live",
+                                            ignore_status=True, debug=True)
+                    libvirt.check_exit_status(result)
+                    exp_vcpu = {'max_config': max_vcpu, 'max_live': current_vcpu,
+                                'cur_config': current_vcpu, 'cur_live': current_vcpu,
+                                'guest_live': current_vcpu}
+                    result = cpu.check_vcpu_value(vm, exp_vcpu,
+                                                  option="--live")
+                else:
+                    logging.warn("aarch64 do not support vcpu hot-unplug by now")
             elif condn == "host_smt":
                 result = process.run("ppc64_cpu --smt=2", shell=True)
                 # Change back the host smt

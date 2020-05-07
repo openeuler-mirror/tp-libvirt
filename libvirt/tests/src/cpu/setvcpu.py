@@ -1,5 +1,6 @@
 import logging
 import collections
+import platform
 
 from virttest import virsh
 from virttest import cpu
@@ -63,9 +64,12 @@ def run(test, params, env):
                 if (vmxml.vcpus.vcpu[cpu_id].get('enabled') != "yes"):
                     test.fail("vcpu status check fail")
             elif "disable" in cpu_option:
-                cpu_count -= 1
-                if (vmxml.vcpus.vcpu[cpu_id].get('enabled') != "no"):
-                    test.fail("vcpu status check fail")
+                if platform.machine() == 'aarch64':
+                    logging.warn("aarch64 do not support vcpu hot-unplug by now")
+                else:
+                    cpu_count -= 1
+                    if (vmxml.vcpus.vcpu[cpu_id].get('enabled') != "no"):
+                        test.fail("vcpu status check fail")
             else:
                 test.fail("wrong vcpu status in xml")
 
@@ -115,11 +119,15 @@ def run(test, params, env):
             order_expect = order_pre.copy()
             order_expect[vcpu] = len(order_pre) + 1
         elif "disable" in cpu_option:
-            for vcpuid, order in order_pre.items():
-                if order > order_pre[vcpu]:
-                    order_pre[vcpuid] = order - 1
-            order_pre.pop(vcpu)
-            order_expect = order_pre.copy()
+            if platform.machine() == 'aarch64':
+                logging.warn("aarch64 do not support vcpu hot-unplug by now")
+                order_expect = order_new
+            else:
+                for vcpuid, order in order_pre.items():
+                    if order > order_pre[vcpu]:
+                        order_pre[vcpuid] = order - 1
+                order_pre.pop(vcpu)
+                order_expect = order_pre.copy()
 
         if order_expect != order_new:
             test.fail("vcpu order check fail")
@@ -193,15 +201,18 @@ def run(test, params, env):
 
         if check.startswith("hotplug"):
             for cpus, option in setvcpu_option.items():
-                vmxml_pre = vm_xml.VMXML.new_from_dumpxml(vm_name)
-                cpus_online_pre = vm.get_cpu_count()
-                result_to_check = virsh.setvcpu(vm_name, cpus, option, debug=True)
-                if not status_error:
-                    cpulist = cpu.cpus_parser(cpus)
-                    check_vcpu_status(cpulist, option, cpus_online_pre)
-                    # check vcpu order only when live status of vcpu is changed
-                    if 'config' not in option:
-                        check_vcpu_order(cpulist, option, vmxml_pre)
+                if 'disable' in option and platform.machine() == 'aarch64':
+                    logging.warn("aarch64 do not support vcpu hot-unplug by now")
+                else:
+                    vmxml_pre = vm_xml.VMXML.new_from_dumpxml(vm_name)
+                    cpus_online_pre = vm.get_cpu_count()
+                    result_to_check = virsh.setvcpu(vm_name, cpus, option, debug=True)
+                    if not status_error:
+                        cpulist = cpu.cpus_parser(cpus)
+                        check_vcpu_status(cpulist, option, cpus_online_pre)
+                        # check vcpu order only when live status of vcpu is changed
+                        if 'config' not in option:
+                            check_vcpu_order(cpulist, option, vmxml_pre)
 
         if 'result_to_check' in locals():
             if err_msg:

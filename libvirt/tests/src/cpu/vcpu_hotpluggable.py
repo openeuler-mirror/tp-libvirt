@@ -3,6 +3,7 @@ import re
 import copy
 import ast
 import logging
+import platform
 
 from avocado.utils import process
 from avocado.utils import distro
@@ -132,9 +133,12 @@ def run(test, params, env):
                                     ignore_status=False, debug=True)
                 vcpus_crt += 1
             if disable_vcpu:
-                ret = virsh.setvcpu(vm_name, disable_vcpu, "--disable",
-                                    ingnore_status=False, debug=True)
-                vcpus_crt -= 1
+                if platform.machine() == 'aarch64':
+                    logging.warn("aarch64 do not support vcpu hot-unplug by now")
+                else:
+                    ret = virsh.setvcpu(vm_name, disable_vcpu, "--disable",
+                                        ingnore_status=False, debug=True)
+                    vcpus_crt -= 1
             if live_vcpus:
                 ret = virsh.setvcpus(vm_name, live_vcpus, ignore_status=False,
                                      debug=True)
