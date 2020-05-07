@@ -336,7 +336,10 @@ def run(test, params, env):
                     cells[cell]["memory"] = memory_value
             cpu_xml = vm_xml.VMCPUXML()
             cpu_xml.xml = "<cpu><numa/></cpu>"
-            cpu_mode = params.get("cpu_mode")
+            if platform.machine().lower() == "aarch64":
+                cpu_mode = params.get("cpu_mode", "host-passthrough")
+            else:
+                cpu_mode = params.get("cpu_mode")
             model_fallback = params.get("model_fallback")
             if cpu_mode:
                 cpu_xml.mode = cpu_mode
