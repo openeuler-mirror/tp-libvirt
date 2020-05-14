@@ -77,6 +77,8 @@ def run(test, params, env):
                   'target_type': 'virtio',
                   'target_name': char_type}
         channel_xml = utlv.create_channel_xml(params, alias=True, address=True)
+        if os.path.exists(to_file):
+            os.remove(to_file)
         shutil.copyfile(channel_xml.xml, to_file)
 
     def hotplug_device(type, char_dev, id=0):
@@ -223,6 +225,7 @@ def run(test, params, env):
             hotplug_device(hotplug_type, char_dev, pts_id)
             ret = dup_hotplug(hotplug_type, char_dev, pts_id, dup_charid, dup_devid, diff_devid)
             dup_o = ret.stdout.strip()
+            dup_e = ret.stderr.strip()
             if hotplug_type == "qmp":
                 # although it has failed, ret.exit_status will be returned 0.
                 err_o1 = "Duplicate ID"
@@ -232,7 +235,7 @@ def run(test, params, env):
                 if (err_o1 not in dup_o) and (err_o2 not in dup_o) and (err_o3 not in dup_o) and (err_o4 not in dup_o):
                     test.fail("Expect fail, but run successfully:\n%s" % ret)
             else:
-                if "chardev already exists" not in dup_o:
+                if "already exists" not in dup_e:
                     logging.info("Expect fail,but run successfully:\n%s" % ret)
         else:
             if char_dev != "all":
