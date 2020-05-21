@@ -1362,5 +1362,5 @@ def get_compat_guest_migrate(params):
     if platform.machine() == 's390x':
         return False
     compat_guest_migrate = (params.get("host_arch", "all_arch") in
-                            cpu.get_cpu_info()['Model name'])
+                            cpu.get_cpu_info().get('Model name', ""))
     return compat_guest_migrate
