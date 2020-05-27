@@ -633,12 +633,14 @@ def run(test, params, env):
             if vm.is_alive():
                 vm.destroy()
             cpu_model = params.get("cpu_model", None)
+            if "host" in cpu_model:
+                cpu_model = cpu.get_cpu_info().get('Model name', None)
             vm_xml.VMXML.set_cpu_mode(vm.name, mode='host-model',
                                       model=cpu_model)
             vm.start()
             session = vm.wait_for_login()
-            actual_cpu_model = cpu.get_cpu_info(session)['Model name']
-            if cpu_model not in actual_cpu_model.lower():
+            actual_cpu_model = cpu.get_cpu_info(session).get('Model name', None)
+            if actual_cpu_model and cpu_model not in actual_cpu_model.lower():
                 test.error("Failed to configure cpu model,\nexpected: %s but "
                            "actual cpu model: %s" % (cpu_model,
                                                      actual_cpu_model))
