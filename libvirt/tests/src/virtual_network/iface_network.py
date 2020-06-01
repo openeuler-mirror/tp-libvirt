@@ -5,6 +5,7 @@ import ast
 import logging
 import platform
 
+from avocado.utils import distro
 from avocado.utils import process
 from avocado.utils import stacktrace
 
@@ -22,6 +23,23 @@ from virttest.utils_test.__init__ import ping
 from virttest.libvirt_xml import vm_xml, xcepts
 from virttest.libvirt_xml.network_xml import NetworkXML
 from provider import libvirt_version
+
+
+def strip_console_codes(output, custom_codes="\\[=3h"):
+    """
+    Remove the Linux console escape and control sequences from the console
+    output. Make the output readable and can be used for result check. Now
+    only remove some basic console codes using during boot up.
+
+    :param output: The output from Linux console
+    :type output: string
+    :param custom_codes: The codes added to the console codes which is not
+                         covered in the default codes
+    :type output: string
+    :return: the string without any special codes
+    :rtype: string
+    """
+    return utils_misc.strip_console_codes(output, custom_codes)
 
 
 def run(test, params, env):
@@ -42,27 +60,52 @@ def run(test, params, env):
         """
         Prepare tftp server and pxe boot files
         """
-        pkg_list = ["syslinux", "tftp-server",
-                    "tftp", "ipxe-roms-qemu", "wget"]
+        if host_arch == 'aarch64':
+            pkg_list = ["tftp-server"]
+        else:
+            pkg_list = ["syslinux", "tftp-server",
+                        "tftp", "ipxe-roms-qemu", "wget"]
+            if distro.detect().name == 'openEuler':
+                pkg_list.append("qemu-seabios")
         # Try to install required packages
         if not utils_package.package_install(pkg_list):
-            test.error("Failed ot install required packages")
+            test.error("Failed to install required packages")
         boot_initrd = params.get("boot_initrd", "EXAMPLE_INITRD")
         boot_vmlinuz = params.get("boot_vmlinuz", "EXAMPLE_VMLINUZ")
         if boot_initrd.count("EXAMPLE") or boot_vmlinuz.count("EXAMPLE"):
             test.cancel("Please provide initrd/vmlinuz URL")
         # Download pxe boot images
-        process.system("wget %s -O %s/initrd.img" % (boot_initrd, tftp_root))
-        process.system("wget %s -O %s/vmlinuz" % (boot_vmlinuz, tftp_root))
-        process.system("cp -f /usr/share/syslinux/pxelinux.0 {0};"
-                       " mkdir -m 777 -p {0}/pxelinux.cfg".format(tftp_root), shell=True)
-        pxe_file = "%s/pxelinux.cfg/default" % tftp_root
-        boot_txt = """
+        if boot_initrd.count("file://") or boot_vmlinuz.count("file://"):
+            process.system("cp -f {0} {1}/initrd.img; chmod 644 {1}/initrd.img".format(
+                boot_initrd.replace("file://", ""), tftp_root), shell=True)
+            process.system("cp -f {0} {1}/vmlinuz-test; chmod 755 {1}/vmlinuz-test".format(
+                boot_vmlinuz.replace("file://", ""), tftp_root), shell=True)
+        else:
+            process.system("wget %s -O %s/initrd.img" % (boot_initrd, tftp_root))
+            process.system("wget %s -O %s/vmlinuz-test" % (boot_vmlinuz, tftp_root))
+        if host_arch == 'aarch64':
+            process.system("cp -f /boot/efi/EFI/*/grubaa64.efi {0}/{1};"
+                           " chmod 644 {0}/{1}".format(tftp_root, bootp_file), shell=True)
+            pxe_file = "%s/grub.cfg" % tftp_root
+            boot_txt = """
+set timeout=3
+set default=pxe_boot_test
+menuentry 'pxe_boot_test' {
+        linux   /vmlinuz-test console=ttyAMA0,115200 console=tty0
+        initrd  /initrd.img
+}
+"""
+        else:
+            process.system("cp -f /usr/share/syslinux/ldlinux.c32 {0};"
+                           " cp -f /usr/share/syslinux/pxelinux.0 {0};"
+                           " mkdir -m 777 -p {0}/pxelinux.cfg".format(tftp_root), shell=True)
+            pxe_file = "%s/pxelinux.cfg/default" % tftp_root
+            boot_txt = """
 DISPLAY boot.txt
 DEFAULT rhel
 LABEL rhel
-        kernel vmlinuz
-        append initrd=initrd.img
+        kernel vmlinuz-test
+        append initrd=initrd.img console=ttyS0,115200 console=tty0
 PROMPT 1
 TIMEOUT 3"""
         with open(pxe_file, 'w') as p_file:
@@ -82,10 +125,20 @@ TIMEOUT 3"""
             osxml.type = vmxml.os.type
             osxml.arch = vmxml.os.arch
             osxml.machine = vmxml.os.machine
-            osxml.loader = "/usr/share/seabios/bios.bin"
-            osxml.bios_useserial = "yes"
-            if utils_misc.compare_qemu_version(4, 0, 0, False):
-                osxml.bios_reboot_timeout = "-1"
+            if host_arch == 'aarch64':
+                osxml.loader = vmxml.os.loader
+                osxml.loader_readonly = vmxml.os.loader_readonly
+                osxml.loader_type = vmxml.os.loader_type
+                osxml.nvram = vmxml.os.nvram
+            elif os.path.exists("/usr/share/seabios/bios.bin"):
+                osxml.loader = "/usr/share/seabios/bios.bin"
+                osxml.bios_useserial = "yes"
+                if utils_misc.compare_qemu_version(4, 0, 0, False):
+                    osxml.bios_reboot_timeout = "-1"
+            elif os.path.exists("/usr/share/qemu/bios.bin"):
+                osxml.loader = "/usr/share/qemu/bios.bin"
+                osxml.bios_useserial = "yes"
+                osxml.bios_reboot_timeout = "0"
             osxml.boots = ['network']
             del vmxml.os
             vmxml.os = osxml
@@ -609,6 +662,7 @@ TIMEOUT 3"""
     ipt6_rules = []
     define_macvtap = "yes" == params.get("define_macvtap", "no")
     net_dns_forwarders = params.get("net_dns_forwarders", "").split()
+    bootp_file = params.get("bootp_file", "pxelinux.0")
 
     # Destroy VM first
     if vm.is_alive() and not update_device:
@@ -895,11 +949,13 @@ TIMEOUT 3"""
                     test.fail("Existing macvtap device %s is not expected! should be macvtap(0-7)" % macvtap_list)
             if pxe_boot:
                 # Just check network boot messages here
+                if os.path.exists("/usr/share/seabios/bios.bin") or os.path.exists("/usr/share/qemu/bios.bin"):
+                    check_prompt = ["Loading vmlinuz", "Loading initrd.img"]
+                else:
+                    check_prompt = ["vmlinuz-test"]
                 try:
-                    vm.serial_console.read_until_output_matches(
-                        ["Loading vmlinuz", "Loading initrd.img"],
-                        utils_misc.strip_console_codes)
-                    output = vm.serial_console.get_stripped_output()
+                    vm.serial_console.read_until_output_matches(check_prompt, strip_console_codes)
+                    output = strip_console_codes(vm.serial_console.get_output())
                     logging.debug("Boot messages: %s", output)
                 except ExpectTimeoutError as details:
                     if boot_failure:
