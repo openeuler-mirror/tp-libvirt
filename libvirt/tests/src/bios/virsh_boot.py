@@ -4,6 +4,7 @@ import re
 from aexpect.utils import astring
 from aexpect.exceptions import ShellProcessTerminatedError
 
+from avocado.utils import distro
 from avocado.utils import process
 
 from virttest import remote
@@ -239,9 +240,13 @@ def setup_test_env(params, test):
         elif not utils_package.package_install('qemu-kvm'):
             test.error("qemu-kvm package install failed")
 
-    if boot_type == "seabios" and \
-            not utils_package.package_install('seabios-bin'):
-        test.error("seabios package install failed")
+    if boot_type == "seabios":
+        if distro.detect().name == "openEuler":
+            seabios_pkg = "qemu-seabios"
+        else:
+            seabios_pkg = "seabios-bin"
+        if not utils_package.package_install(seabios_pkg):
+            test.error("seabios package install failed")
 
     if (source_protocol == "gluster"
             and not params.get("gluster_server_ip")
