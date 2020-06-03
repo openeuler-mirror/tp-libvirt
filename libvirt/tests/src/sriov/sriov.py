@@ -4,6 +4,7 @@ import re
 import glob
 import string
 import random
+import platform
 
 from avocado.utils import process
 
@@ -37,6 +38,8 @@ def run(test, params, env):
                 pf_iface_name = temp_iface_name
                 pci_address = pci
                 break
+            else:
+                pci_address = pci
         if pci_address == "":
             return False
         else:
@@ -147,6 +150,7 @@ def run(test, params, env):
         """
         Get interface IP address by given MAC address.
         """
+        iface_name = None
         if vm.serial_console is not None:
             vm.cleanup_serial_console()
         vm.create_serial_console()
@@ -263,10 +267,12 @@ def run(test, params, env):
             xml = NodedevXML.new_from_dumpxml(nodedev_pci)
             if info_type == "pf_info":
                 product_info = xml.cap.product_info
-                max_count = xml.max_count
+                max_count = int(xml.max_count)
+                if "aarch64" in platform.platform():
+                    max_count -= 1
                 if pci_info.find(product_info) == -1:
                     test.fail("The product_info show in nodedev-dumpxml is wrong\n")
-                if int(max_count) != max_vfs:
+                if max_count != max_vfs:
                     test.fail("The maxCount show in nodedev-dumpxml is wrong\n")
             if info_type == "vf_order":
                 vf_addr_list = xml.cap.virt_functions
@@ -610,7 +616,7 @@ def run(test, params, env):
             logging.debug(device)
             if device.type == 'pci' and device.model == "pci-bridge":
                 pci_bridge_controllers.append(device)
-        if not pci_bridge_controllers:
+        if not pci_bridge_controllers and "aarch64" not in platform.platform():
             pci_bridge_controller = Controller("controller")
             pci_bridge_controller.type = "pci"
             pci_bridge_controller.index = "1"
