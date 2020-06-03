@@ -2,6 +2,7 @@ import datetime
 import logging
 import re
 import time
+import platform
 
 from avocado.utils import process
 
@@ -251,6 +252,8 @@ def run(test, params, env):
         if suspend or managedsave:
             logging.info('Remove %ss from expected guest software time',
                          stop_time)
+            if "aarch64" in platform.machine():
+                expected_times["local_hw"] -= stop_time
             expected_times["domtime"] -= stop_time
             expected_times["local_sys"] -= stop_time
             expected_times["utc_sys"] -= stop_time
