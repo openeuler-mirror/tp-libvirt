@@ -6,6 +6,7 @@ import platform
 
 from avocado.utils import process
 
+from virttest import cpu
 from virttest import virsh
 from virttest import error_context
 from virttest import utils_time
@@ -348,6 +349,12 @@ def run(test, params, env):
     vm_stop_duration = int(params.get("vm_stop_duration", "10"))
 
     vm_name = params.get("main_vm")
+    cpumodel = params.get("cpu_mode", '')
+    if "host_auto" in cpumodel:
+        cpumodel = cpu.get_cpu_info().get('Model name', None)
+        vm_xml.VMXML.set_cpu_mode(vm_name, mode='host-model', model=cpumodel)
+    else:
+        vm_xml.VMXML.set_cpu_mode(vm_name, mode='host-passthrough')
     vm = env.get_vm(vm_name)
     readonly = (params.get("readonly_test", "no") == "yes")
 
