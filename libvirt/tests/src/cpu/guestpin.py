@@ -211,7 +211,7 @@ def run(test, params, env):
 
             logging.debug("Check cpustats for non-pinned cpus")
             for index in cpus_list[1:-1]:
-                if cpustats[index][2] > 0:
+                if cpustats[index][2] > 0.005:
                     fail = True
                     logging.error("Non zero cputime even with no vcpu,emualtor pinned")
 
@@ -245,7 +245,7 @@ def run(test, params, env):
                     if cpustats[hostcpu][0] == 0:
                         fail = True
                         logging.error("vcputime should be positive as vcpu is pinned")
-                    if cpustats[hostcpu][1] > 0:
+                    if cpustats[hostcpu][1] > 0.005:
                         fail = True
                         logging.error("Non zero emulatortime even with emulator unpinned")
         if condition:
