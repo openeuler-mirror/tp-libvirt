@@ -110,9 +110,15 @@ def run(test, params, env):
         """
         # Add loader, nvram in <os>
         nvram = nvram.replace("<VM_NAME>", vm_name)
+        loader_type = "pflash"
+        # openeuler not support nvram for x86
+        if "openeuler" in host_distro.lower():
+            nvram = ""
+            loader_type = "rom"
+            loader = "/usr/share/edk2/ovmf/OVMF.fd"
         dict_os_attrs = {"loader_readonly": "yes",
                          "secure": "yes",
-                         "loader_type": "pflash",
+                         "loader_type": loader_type,
                          "loader": loader,
                          "nvram": nvram}
         vm_xml.set_os_attrs(**dict_os_attrs)
@@ -122,17 +128,19 @@ def run(test, params, env):
         features_xml.smm = "on"
         vm_xml.features = features_xml
         vm_xml.sync()
-        # Replace disk with an uefi image
-        if not utils_package.package_install("wget"):
-            test.error("Failed to install wget on host")
-        if uefi_disk_url.count("EXAMPLE"):
-            test.error("Please provide the URL %s" % uefi_disk_url)
-        else:
-            download_cmd = ("wget %s -O %s" % (uefi_disk_url, download_file_path))
-            process.system(download_cmd, verbose=False, shell=True)
-        vm = env.get_vm(vm_name)
-        uefi_disk = {'disk_source_name': download_file_path}
-        libvirt.set_vm_disk(vm, uefi_disk)
+
+        if "openeuler" not in host_distro.lower():
+            # Replace disk with an uefi image
+            if not utils_package.package_install("wget"):
+                test.error("Failed to install wget on host")
+            if uefi_disk_url.count("EXAMPLE"):
+                test.error("Please provide the URL %s" % uefi_disk_url)
+            else:
+                download_cmd = ("wget %s -O %s" % (uefi_disk_url, download_file_path))
+                process.system(download_cmd, verbose=False, shell=True)
+            vm = env.get_vm(vm_name)
+            uefi_disk = {'disk_source_name': download_file_path}
+            libvirt.set_vm_disk(vm, uefi_disk)
 
     vm_names = params.get("vms").split()
     vm_name = vm_names[0]
@@ -140,14 +148,45 @@ def run(test, params, env):
     vm_xml = VMXML.new_from_inactive_dumpxml(vm_name)
     vm_xml_backup = vm_xml.copy()
     os_xml = getattr(vm_xml, "os")
+
+    # snapshot image need remove
+    elems = vm_xml_backup.xmltreefile.findall('/devices/disk/source')
+    existing_images = [elem.get('file') for elem in elems]
+    for img in existing_images:
+        if 'images' in img:
+            snapshot_image = img.split('qcow2')[0] + "sp1"
+            logging.info('snapshot_image is : %s'% snapshot_image)
+
     host_arch = platform.machine()
+    host_distro = process.getoutput('eval $(grep ^ID= /etc/os-release); echo "$ID"').strip()
     if backend_type == "emulator" and host_arch == 'x86_64':
-        if not utils_package.package_install("OVMF"):
+        if not utils_package.package_install(pkg="OVMF", timeout=10) \
+                and not utils_package.package_install(pkg="edk2-ovmf", timeout=10):
             test.error("Failed to install OVMF or edk2-ovmf pkgs on host")
         if os_xml.xmltreefile.find('nvram') is None:
             replace_os_disk(vm_xml, vm_name, nvram)
             vm_xml = VMXML.new_from_inactive_dumpxml(vm_name)
+
+    if backend_type == "emulator" and host_arch == 'aarch64':
+        # tpm-tis-device does not work in ACPI mode
+        feature_xml = getattr(vm_xml, "features")
+        logging.info('feature_xml is: %s' % feature_xml)
+        if vm_xml.xmltreefile.find('features'):
+            vmxml_feature = vm_xml.features
+            if vmxml_feature.has_feature('acpi'):
+                vmxml_feature.remove_feature('acpi')
+                vm_xml.features = vmxml_feature
+                vm_xml.sync()
+        feature_xml = getattr(vm_xml, "features")
+        logging.info('feature_xml is: %s' % feature_xml)
+    # default permissions 755, The vm with swtpm cannot be started
+    if os.path.exists('/var/lib/swtpm-localca'):
+        process.run("chmod -R 777 /var/lib/swtpm-localca")
     if vm.is_alive():
+        vm.destroy()
+    elif multi_vms:
+        # The VM with OS_NVRAM needs to be started to generate the NVRAM file. If file not exist, virt-clone will fail
+        vm.start()
         vm.destroy()
 
     vm2 = None
@@ -407,9 +446,12 @@ def run(test, params, env):
             if not utils_package.package_install(["tpm2-tools"], session, 360):
                 test.error("Failed to install tpm2-tools package in guest")
             else:
-                tpm2_getrandom_cmd = get_tpm2_tools_cmd(session)
                 status1, output1 = session.cmd_status_output("ls /dev/|grep tpm")
                 logging.debug("Command output: %s", output1)
+                if "openeuler" in host_distro.lower():
+                    tpm2_getrandom_cmd = 'tpm2_pcrread'
+                else:
+                    tpm2_getrandom_cmd = get_tpm2_tools_cmd(session)
                 status2, output2 = session.cmd_status_output(tpm2_getrandom_cmd)
                 logging.debug("Command output: %s", output2)
                 if status1 or status2:
@@ -686,6 +728,8 @@ def run(test, params, env):
                     virsh.snapshot_delete(vm_name, snap, "--metadata")
                 if os.path.exists("/tmp/testvm_sp1"):
                     os.remove("/tmp/testvm_sp1")
+                if os.path.exists(snapshot_image):
+                    os.remove(snapshot_image)
         # Clear guest os
         if test_suite:
             session = vm.wait_for_login()
