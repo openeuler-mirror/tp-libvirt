@@ -140,7 +140,7 @@ def run(test, params, env):
             # Create interface to be hotplugged
             logging.info('Create interface to be hotplugged')
             target_bus = cur_pci_br[0].index
-            target_bus = hex(int(target_bus))
+            target_bus = hex(int(target_bus) - 1)
             logging.debug('target_bus: %s', target_bus)
 
             new_iface_kwargs = {'address': iface_kwargs['address'] % target_bus}
@@ -159,7 +159,7 @@ def run(test, params, env):
             iface_list = [
                 iface for iface in xml_after_attach.get_devices('interface')
                 if iface.mac_address == mac and
-                int(iface.address['attrs']['bus'], 16) == int(pci_br_index)
+                int(iface.address['attrs']['bus'], 16) == (int(pci_br_index) - 1)
             ]
 
             logging.debug('iface list after attach: %s', iface_list)

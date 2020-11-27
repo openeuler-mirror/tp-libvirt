@@ -144,6 +144,9 @@ def run(test, params, env):
         if process.run(cmd, ignore_status=True, shell=True).exit_status:
             test.fail("Failed to get VM started log from VM log file: %s."
                       % guest_log_file)
+        cmd = (cmd + "|wc -l")
+        log_count = process.run(cmd, ignore_status=True, shell=True).stdout
+        return int(log_count)
 
     def check_pipe_closed(pipe_node):
         """
@@ -303,7 +306,8 @@ def run(test, params, env):
 
             # Check VM started log is written into log file correctly.
             if not with_console_log:
-                check_info_in_vm_log_file(vm_name, guest_log_file, matchedMsg="char device redirected to /dev/pts")
+                log_count1 = check_info_in_vm_log_file(vm_name, guest_log_file,
+                                                       matchedMsg="char device redirected to /dev/pts")
 
             # Get pipe node opened by virtlogd for VM log file.
             pipe_node_field = "$9"
@@ -358,8 +362,12 @@ def run(test, params, env):
                           "Error: %s" % str(detail))
             # Check the new VM start log is appended to the end of the VM log file.
             if not with_console_log:
-                check_info_in_vm_log_file(vm_name, guest_log_file, cmd="tail -n 5",
-                                          matchedMsg="char device redirected to /dev/pts")
+                log_count2 = check_info_in_vm_log_file(vm_name, guest_log_file,
+                                                       matchedMsg="char device redirected to /dev/pts")
+                if log_count2 - log_count1 < 1:
+                    test.fail("Failed to get VM started log from VM log file: %s."
+                              % guest_log_file)
+
 
     finally:
         config.restore()
