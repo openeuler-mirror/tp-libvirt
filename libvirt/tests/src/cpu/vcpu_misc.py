@@ -1,3 +1,6 @@
+"""
+vcpu_misc
+"""
 import logging
 import re
 
@@ -14,12 +17,14 @@ def run(test, params, env):
     1) check dumpxml after snapshot-create/revert
     2) check vendor_id
     3) check maximum vcpus with topology settings
+    4) check vcpu topology when smt
 
     :param test: test object
     :param params: Dictionary with the test parameters
     :param env: Dictionary with test environment.
     """
 
+    # pylint: disable=R0914, C0103, C0111, C0122, W0612, R0912, R0915
     def update_cpu_xml():
         """
         Update cpu xml for test
@@ -42,11 +47,19 @@ def run(test, params, env):
 
         if vcpu_max:
             if with_topology:
-                vm_xml.VMXML.set_vm_vcpus(vm_name, int(vcpu_max),
-                                          cores=int(vcpu_max),
-                                          sockets=1, threads=1,
-                                          add_topology=with_topology,
-                                          topology_correction=with_topology)
+                if vcpu_smt:
+                    vm_xml.VMXML.set_vm_vcpus(vm_name, int(vcpu_max),
+                                              current=int(vcpu_max),
+                                              cores=int(int(vcpu_max) / 2),
+                                              sockets=1, threads=2,
+                                              add_topology=with_topology,
+                                              topology_correction=with_topology)
+                else:
+                    vm_xml.VMXML.set_vm_vcpus(vm_name, int(vcpu_max),
+                                              cores=int(vcpu_max),
+                                              sockets=1, threads=1,
+                                              add_topology=with_topology,
+                                              topology_correction=with_topology)
             else:
                 vm_xml.VMXML.set_vm_vcpus(vm_name, int(vcpu_max))
 
@@ -86,6 +99,7 @@ def run(test, params, env):
 
     cpu_mode = params.get('cpu_mode')
     vcpu_max = params.get('vcpu_max')
+    vcpu_smt = params.get('vcpu_smt')
     expected_str_before_startup = params.get("expected_str_before_startup")
     expected_str_after_startup = params.get("expected_str_after_startup")
 
@@ -153,6 +167,18 @@ def run(test, params, env):
                 if vm_session.cmd_status(cmd_in_guest):
                     vm_session.close()
                     test.fail("Failed to run '%s' in vm." % cmd_in_guest)
+                vm_session.close()
+
+            if vcpu_smt:
+                vm_session = vm.wait_for_login()
+                (thread_output, thread_result) = vm_session.cmd_status_output(\
+                    "lscpu | grep Thread | awk -F: '{ print $2 == 2}'")
+                (core_output, core_result) = vm_session.cmd_status_output(\
+                    "lscpu | grep Core | awk '{ print $4}'")
+                if int(thread_result) != 1:
+                    test.fail("error Thread number")
+                if int(core_result) != int(int(vcpu_max)/2):
+                    test.fail("error Core number")
                 vm_session.close()
 
     finally:
