@@ -3,6 +3,7 @@ import os
 import re
 from aexpect.utils import astring
 from aexpect.exceptions import ShellProcessTerminatedError
+from aexpect.exceptions import ExpectTimeoutError
 
 from avocado.utils import distro
 from avocado.utils import process
@@ -297,6 +298,8 @@ def apply_boot_options(vmxml, params, test):
     nvram = params.get("nvram", "")
     readonly = params.get("readonly", "")
     template = params.get("template", "")
+    secure_template = params.get("secure_template", "")
+    secure_template_url = params.get("secure_template_url", "")
     boot_dev = params.get("boot_dev", "hd")
     loader_type = params.get("loader_type", "")
     boot_type = params.get("boot_type", "seabios")
@@ -350,8 +353,12 @@ def apply_boot_options(vmxml, params, test):
         logging.debug("Set os nvram")
         nvram = nvram.replace("<VM_NAME>", vm_name)
         dict_os_attrs.update({"nvram": nvram})
+        secure_boot_mode = (params.get("secure_boot_mode", "no") == "yes")
         if with_nvram_template:
             dict_os_attrs.update({"nvram_template": template})
+        if secure_boot_mode and boot_type == "edk":
+            dict_os_attrs.update({"nvram_template": secure_template})
+            download_file(secure_template_url, secure_template, test)
 
     vmxml.set_os_attrs(**dict_os_attrs)
 
@@ -639,6 +646,7 @@ def run(test, params, env):
     target_dev = params.get("target_dev", "vdb")
     vol_name = params.get("vol_name")
     brick_path = os.path.join(test.virtdir, "gluster-pool")
+    boot_type = params.get("boot_type", "seabios")
 
     # Prepare result checkpoint list
     check_points = []
@@ -669,13 +677,13 @@ def run(test, params, env):
             if "yes" == params.get("two_same_boot_dev", "no"):
                 boot_kwargs.update({"two_same_boot_dev": True})
             set_boot_dev_or_boot_order(vmxml, **boot_kwargs)
-        if secure_boot_mode:
+        if secure_boot_mode and boot_type != "edk":
             secure_boot_kwargs = {"uefi_iso": uefi_iso,
                                   "uefi_target_dev": uefi_target_dev,
                                   "uefi_device_bus": uefi_device_bus,
                                   "uefi_custom_codes": custom_codes}
             enable_secure_boot(vm, vmxml, test, **secure_boot_kwargs)
-        if not secure_boot_mode:
+        if not secure_boot_mode or (secure_boot_mode and boot_type == "edk"):
             define_error = ("yes" == params.get("define_error", "no"))
             enable_normal_boot(vmxml, check_points, define_error, test)
             # Some negative cases failed at virsh.define
@@ -685,7 +693,7 @@ def run(test, params, env):
         # Start VM and check result
         # For boot from cdrom or non_released_os, just verify key words from serial console output
         # For boot from disk image, run 'test cmd' to verify if OS boot well
-        if boot_dev == "cdrom" or non_release_os_url:
+        if boot_dev == "cdrom" or (non_release_os_url and boot_type != "edk"):
             if not vm.is_alive():
                 vm.start()
                 check_prompt = params.get("check_prompt", "")
@@ -700,7 +708,9 @@ def run(test, params, env):
                         logging.debug("Got check point as expected")
                         break
         elif boot_dev == "hd":
+            vm.cleanup_serial_console()
             ret = virsh.start(vm_name, timeout=60)
+            vm.create_serial_console()
             utlv.check_result(ret, expected_fails=check_points)
             # For no boot options, further check if boot dev can be automatically added
             if not with_boot:
@@ -718,6 +728,13 @@ def run(test, params, env):
                     if status:
                         test.fail("Failed to boot %s from %s" % (vm_name, vmxml.xml))
                 remote_session.close()
+            if  boot_type == "edk" and secure_boot_mode:
+                check_prompt = params.get("check_prompt", "")
+                try:
+                    vm.serial_console.read_until_any_line_matches([check_prompt], timeout=60)
+                except ExpectTimeoutError:
+                    test.fail('Timeout when waiting for command output. '
+                              'Secure boot failed by_edk')
         logging.debug("Succeed to boot %s" % vm_name)
     finally:
         # Remove ceph configure file if created.
