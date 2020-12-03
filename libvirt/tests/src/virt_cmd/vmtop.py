@@ -188,10 +188,13 @@ def run(test, params, env):
         # destroy vm_clone
         if test_type == "multi_vms":
             num = 1
-            if virsh.is_alive(vm_clone_name[num - 1]):
-                while num < vm_num:
-                    virsh.destroy(vm_clone_name[num - 1])
-                    num = num + 1
+            while num < vm_num:
+                if virsh.domain_exists(vm_clone_name[num - 1]):
+                    if virsh.is_alive(vm_clone_name[num - 1]):
+                        virsh.destroy(vm_clone_name[num - 1])
+                        virsh.remove_domain(vm_clone_name[num - 1], \
+                                            "--remove-all-storage", debug=True)
+                num = num + 1
 
         if vm.is_alive():
             vm.destroy()
