@@ -98,7 +98,7 @@ def run(test, params, env):
 
         virsh.start(vmname, ignore_status=True)
 
-        #install vmtop command
+        #Install vmtop command
         install_cmd = "yum install -y vmtop"
         process.run(install_cmd, shell=True)
         #Find vmtop command
@@ -107,7 +107,7 @@ def run(test, params, env):
         except path.CmdNotFoundError as info:
             raise exceptions.TestSkipError("No vmtop command found - %s" % info)
 
-        #test vmtop when start vm
+        #Test vmtop when start vm
         res = vmtop_info(vmtop, output_path, info_type="Domains")
         if int(res) != vm_num:
             test.fail("start failed and the res = %s" % res)
@@ -121,7 +121,7 @@ def run(test, params, env):
                     test.fail("error event:%s" % event)
                 order = order + 1
 
-        #test vmtop when other vm action happened
+        #Test vmtop when other vm action happened
         if test_type == "destroy":
             vm.destroy()
             res = vmtop_info(vmtop, output_path, info_type="Domains")
@@ -145,24 +145,19 @@ def run(test, params, env):
             if int(res) != vm_num:
                 test.fail("resume failed and the res = %s" % res)
 
-        #test vmtop with invalid cmdline
-        if option:
-            if option == "x":
-                cmd = "%s -%s" % (vmtop, option)
-                res = process.run(cmd, ignore_status=True, shell=True)
-                libvirt.check_exit_status(res, expect_error=True)
-            elif option == "d":
-                res = vmtop_interval(vmtop, interval, output_path)
-                output = res.splitlines()
-                fir_time = output[0].split()
-                sec_time = output[1].split()
-                if (int(sec_time[0]) - int(fir_time[0])) == int(interval)\
+        # Test vmtop with invalid cmdline
+        if option == "d":
+            res = vmtop_interval(vmtop, interval, output_path)
+            output = res.splitlines()
+            fir_time = output[0].split()
+            sec_time = output[1].split()
+            if (int(sec_time[0]) - int(fir_time[0])) == int(interval) \
                     or (int(sec_time[0]) + 60 - int(fir_time[0])) == int(interval):
-                    logging.info("Test option -d successfully")
-                else:
-                    test.fail("Interval error!")
+                logging.info("Test option -d successfully")
+            else:
+                test.fail("Interval error!")
 
-        #test multivmtop
+        #Test multivmtop
         if vmtopnum:
             cmd = " nohup vmtop -n 10 2>&1 &"
             num = 0
@@ -174,7 +169,7 @@ def run(test, params, env):
             if int(res) != vm_num:
                 test.fail("multivntop start failed and the res = %s" % res)
 
-        #test vcpu_hotpulggable
+        #Test vcpu_hotpulggable
         if test_type == "vcpu_hotplug":
             virsh.setvcpus(vmname, vcpu_live, ignore_status=False, debug=True)
             res = vmtop_info(vmtop, output, info_type="Cpu")
@@ -184,8 +179,15 @@ def run(test, params, env):
             else:
                 test.fail("Error result:%s" % res)
 
+        #Test vmtop with invalid cmdline
+        if option == "x":
+            cmd = "%s -%s" % (vmtop, option)
+            res = process.run(cmd, ignore_status=True, shell=True)
+            libvirt.check_exit_status(res, expect_error=True)
+
+
     finally:
-        # destroy vm_clone
+        # Destroy vm_clone
         if test_type == "multi_vms":
             num = 1
             while num < vm_num:
