@@ -640,7 +640,7 @@ def run(test, params, env):
             vm.start()
             session = vm.wait_for_login()
             actual_cpu_model = cpu.get_cpu_info(session).get('Model name', None)
-            if actual_cpu_model and cpu_model not in actual_cpu_model.lower():
+            if actual_cpu_model and cpu_model.lower() not in actual_cpu_model.lower():
                 test.error("Failed to configure cpu model,\nexpected: %s but "
                            "actual cpu model: %s" % (cpu_model,
                                                      actual_cpu_model))
